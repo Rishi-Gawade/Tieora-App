@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "461033584797",
+    "project_id": "tieora",
+    "storage_bucket": "tieora.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:461033584797:android:c4778408c3c8af668dbc74",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkdA916f-dzLE5Y4a3WTE2mVRvNoI37Kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
