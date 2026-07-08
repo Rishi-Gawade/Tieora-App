@@ -186,13 +186,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 30),
 
-                  SizedBox(
-                    height: 130,
-                    child: Image.asset(
+                Column(
+                  children: [
+                    Image.asset(
                       'assets/tieora_logo.png',
-                      fit: BoxFit.contain,
+                      height: 120, // bigger logo
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Find jobs instantly near you",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
 
                   const SizedBox(height: 40),
 
@@ -235,20 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 28),
 
-                        Container(
-                          height: 50,
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              _roleButton("seeker","Seeker",isSeeker,activeColor),
-                              _roleButton("employer","Employer",!isSeeker,activeColor),
-                            ],
-                          ),
-                        ),
+
 
                         const SizedBox(height: 28),
 
@@ -293,9 +289,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed:
-                                isLoading ? null : loginUser,
-                            child: const Text("Sign In"),
+                            onPressed: isLoading ? null : loginUser,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text(
+                                    "Sign In",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                           ),
                         ),
 
@@ -307,7 +317,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 56,
                           child: OutlinedButton(
                             onPressed: handleGoogleLogin,
-                            child: const Text("Continue with Google"),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            child: const Text(
+                              "Continue with Google",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
 
@@ -387,15 +406,25 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, IconData icon) {
-    return InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    );
-  }
+InputDecoration _inputDecoration(String hint, IconData icon) {
+  return InputDecoration(
+    hintText: hint,
+    prefixIcon: Icon(icon, color: Colors.grey[600]),
+    filled: true,
+    fillColor: const Color(0xFFF8FAFC),
+    contentPadding: const EdgeInsets.symmetric(vertical: 18),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+    ),
+  );
+}
 }

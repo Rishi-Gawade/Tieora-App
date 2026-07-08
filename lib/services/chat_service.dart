@@ -21,15 +21,19 @@ class ChatService {
   /// =========================
   /// 🔥 CREATE OR GET THREAD
   /// =========================
-  Future<String> createOrGetThread(
-    String user1,
-    String user2,
-    String user1Name,
-    String user2Name,
-    String jobId,
-  ) async {
+  Future<String> createOrGetThread({
+  required String seekerId,
+  required String employerId,
+  required String seekerName,
+  required String employerName,
+  required String jobId,
+  required String jobTitle,
+  required String companyName,
+  required String jobLocation,
+  required String jobScope,
+}) async {
     try {
-      final sortedIds = [user1, user2]..sort();
+      final sortedIds = [seekerId, employerId]..sort();
 
       final threadKey =
           "${sortedIds[0]}_${sortedIds[1]}_$jobId";
@@ -37,26 +41,51 @@ class ChatService {
       final existingThread = await threads.doc(threadKey).get();
 
       if (existingThread.exists) {
-        return existingThread.id;
-      }
+  await threads.doc(threadKey).update({
+    "jobTitle": jobTitle,
+    "companyName": companyName,
+    "jobLocation": jobLocation,
+    "jobScope": jobScope,
+    "employerName": employerName,
+    "seekerName": seekerName,
+  });
+
+  return threadKey;
+}
 
       await threads.doc(threadKey).set({
-        "participants": sortedIds,
-        "userNames": {
-          user1: user1Name,
-          user2: user2Name,
-        },
-        "jobId": jobId,
-        "lastMessage": "",
-        "lastMessageAt": FieldValue.serverTimestamp(),
-        "lastSenderId": "",
-        "unreadCount": {
-          user1: 0,
-          user2: 0,
-        },
-        "typing": {},
-        "createdAt": FieldValue.serverTimestamp(),
-      });
+  "participants": sortedIds,
+
+  "userNames": {
+    seekerId: seekerName,
+    employerId: employerName,
+  },
+
+  "jobId": jobId,
+  "jobTitle": jobTitle,
+  "companyName": companyName,
+  "jobLocation": jobLocation,
+  "jobScope": jobScope,
+
+  "employerId": employerId,
+  "employerName": employerName,
+
+  "seekerId": seekerId,
+  "seekerName": seekerName,
+
+  "lastMessage": "",
+  "lastMessageAt": FieldValue.serverTimestamp(),
+  "lastSenderId": "",
+
+  "typing": {},
+
+  "unreadCount": {
+    seekerId: 0,
+    employerId: 0,
+  },
+
+  "createdAt": FieldValue.serverTimestamp(),
+});
 
       return threadKey;
     } catch (e) {
@@ -146,39 +175,49 @@ Future<void> sendMessage(MessageModel message) async {
       "unreadCount": unread,
     });
 
-    if (receiverId != null) {
-      await _notificationService.createNotification(
-        userId: receiverId,
-        type: "message",
-        title: safeSenderName,
-        body: lastMessageText,
-        jobId: message.threadId,
-        jobTitle: "",
-        senderId: message.senderId,
-        senderName: safeSenderName,
+   if (receiverId != null) {
+  /// Create Firestore notification
+  await _notificationService.createNotification(
+    userId: receiverId,
+    type: "message",
+    title: "New Message",
+    body: "$safeSenderName: $lastMessageText",
+    jobId: message.threadId,
+    jobTitle: "",
+    senderId: message.senderId,
+    senderName: safeSenderName,
+  );
+
+  /// Get receiver token
+  final userDoc = await _fire
+      .collection('users')
+      .doc(receiverId)
+      .get();
+
+  final fcmToken = userDoc.data()?['fcmToken'];
+
+  /// Push notification should NEVER break message sending
+  if (fcmToken != null &&
+      fcmToken.toString().trim().isNotEmpty) {
+    try {
+      await _sendPushNotification(
+        token: fcmToken,
+        title: "New Message",
+        body: "$safeSenderName: $lastMessageText",
       );
-
-      final userDoc = await _fire
-          .collection('users')
-          .doc(receiverId)
-          .get();
-
-      final fcmToken = userDoc.data()?['fcmToken'];
-
-      if (fcmToken != null) {
-        await _sendPushNotification(
-          token: fcmToken,
-          title: safeSenderName,
-          body: lastMessageText,
-        );
-      }
+    } catch (e) {
+      debugPrint(
+        "🔥 Push Notification Error: $e",
+      );
     }
-  } catch (e) {
-    debugPrint("🔥 Send message error: $e"); // ✅ DEBUG ADDED
-    throw Exception("Send message error: $e");
   }
 }
-
+} catch (e, stackTrace) {
+  debugPrint("🔥 SEND MESSAGE ERROR: $e");
+  debugPrint("🔥 STACKTRACE: $stackTrace");
+  rethrow;
+}
+}
   /// =========================
   /// 🔥 SEND IMAGE MESSAGE (NEW)
   /// =========================

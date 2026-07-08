@@ -16,9 +16,12 @@ class LocationHelper {
         final loc = locations.first;
         return GeoPoint(loc.latitude, loc.longitude);
       }
-    } catch (e) {
-      debugPrint("Geocoding error: $e");
-    }
+    } catch (e, s) {
+  debugPrint("==============");
+  debugPrint(address);
+  debugPrint(e.toString());
+  debugPrint(s.toString());
+}
     return null;
   }
 

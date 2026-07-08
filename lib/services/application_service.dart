@@ -40,6 +40,14 @@ class ApplicationService {
       });
 
       debugPrint("✅ Application submitted: ${docRef.id}");
+      
+      debugPrint("========== APPLICATION DEBUG ==========");
+      debugPrint("Employer ID => $employerId");
+      debugPrint("Job Title => $jobTitle");
+      debugPrint("Seeker Name => ${application.name}");
+      debugPrint("Seeker ID => ${application.seekerId}");
+      debugPrint("Job ID => ${application.jobId}");
+
 
       /// 🔥 SEND NOTIFICATION TO EMPLOYER
       await _notificationService.createNotification(
@@ -78,14 +86,27 @@ class ApplicationService {
       });
 
       /// 🔥 SEND NOTIFICATION TO SEEKER
+
+
       await _notificationService.createNotification(
         userId: seekerId,
-        type: "application",
-        title: "Application Update",
-        body: "Your application for $jobTitle was $status",
+        type: status == "accepted"
+            ? "Hired"
+            : status == "rejected"
+                ? "rejected"
+                : "application",
+        title: status == "accepted"
+            ? "Application Accepted"
+            : status == "rejected"
+                ? "Application Rejected"
+                : "Application Update",
+        body: status == "accepted"
+            ? "Congratulations! You have been selected for $jobTitle"
+            : status == "rejected"
+                ? "Your application for $jobTitle was not selected."
+                : "Your application for $jobTitle was updated.",
         jobId: jobId,
         jobTitle: jobTitle,
-
         senderId: "employer",
         senderName: "Employer",
       );

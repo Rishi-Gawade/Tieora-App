@@ -6,6 +6,8 @@ import 'my_jobs_screen.dart';
 import '../common/notifications_screen.dart';
 import '../common/profile_screen.dart';
 import 'company_profile_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:badges/badges.dart' as badges;
 
 class EmployerHome extends StatefulWidget {
   const EmployerHome({super.key});
@@ -44,6 +46,7 @@ class _EmployerHomeState extends State<EmployerHome> {
   Widget build(BuildContext context) {
 
     final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid;
 
     return Scaffold(
 
@@ -231,7 +234,7 @@ class _EmployerHomeState extends State<EmployerHome> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        items: const [
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: "Home",
@@ -241,8 +244,32 @@ class _EmployerHomeState extends State<EmployerHome> {
             label: "My Jobs",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
             label: "Notifications",
+            icon: uid == null
+                ? const Icon(Icons.notifications_none)
+                : StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(uid)
+                        .collection('items')
+                        .where('isRead', isEqualTo: false)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      final unread = snapshot.data?.docs.length ?? 0;
+
+                      return badges.Badge(
+                        showBadge: unread > 0,
+                        badgeContent: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
+                        child: const Icon(Icons.notifications_none),
+                      );
+                    },
+                  ),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu),

@@ -43,15 +43,38 @@ class _MessageDetailScreenState
 
   bool _isSending = false;
 
-  @override
-  void initState() {
-    super.initState();
+  String _senderName = "User";
 
-    _chatService.markMessagesAsSeen(
-      threadId: widget.threadId,
-      userId: _currentUserId,
-    );
+  @override
+void initState() {
+  super.initState();
+
+  _loadUserName();
+
+  _chatService.markMessagesAsSeen(
+    threadId: widget.threadId,
+    userId: _currentUserId,
+  );
+}
+
+Future<void> _loadUserName() async {
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_currentUserId)
+        .get();
+
+    final data =
+        doc.data() as Map<String, dynamic>? ?? {};
+
+    _senderName =
+        data['fullName'] ?? "User";
+  } catch (e) {
+    debugPrint("Name Load Error: $e");
   }
+}
+
+  
 
 @override
 void dispose() {
@@ -70,41 +93,44 @@ void dispose() {
 
   /// 🔥 SEND MESSAGE
   Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
+  final text = _controller.text.trim();
 
-    if (text.isEmpty || _isSending) return;
+  if (text.isEmpty || _isSending) return;
 
-    setState(() => _isSending = true);
+  setState(() => _isSending = true);
 
-    try {
-      _controller.clear();
+  try {
+    _controller.clear();
 
-      final message = MessageModel(
-        threadId: widget.threadId,
-        senderId: _currentUserId,
-        senderName: "You",
-        message: text,
-      );
+    final message = MessageModel(
+      threadId: widget.threadId,
+      senderId: _currentUserId,
+      senderName: _senderName,
+      message: text,
+    );
 
-      await _chatService.sendMessage(message);
+    await _chatService.sendMessage(message);
 
-      /// 🔥 STOP TYPING
-      await _chatService.setTyping(
-        threadId: widget.threadId,
-        userId: _currentUserId,
-        isTyping: false,
-      );
+    await _chatService.setTyping(
+      threadId: widget.threadId,
+      userId: _currentUserId,
+      isTyping: false,
+    );
 
-      _scrollToBottom();
-    } catch (e) {
-      AppSnackbar.showError(
-        context,
-        "Failed to send message. Try again.",
-      );
-    } finally {
+    _scrollToBottom();
+  } catch (e) {
+    debugPrint("MESSAGE SCREEN ERROR => $e");
+
+    AppSnackbar.showError(
+      context,
+      e.toString(),
+    );
+  } finally {
+    if (mounted) {
       setState(() => _isSending = false);
     }
   }
+}
 
     /// 🔥 NEW: IMAGE PICK FUNCTION
   Future<void> _pickImage() async {
@@ -121,7 +147,7 @@ void dispose() {
       await _chatService.sendImageMessage(
         threadId: widget.threadId,
         senderId: _currentUserId,
-        senderName: "You",
+        senderName: _senderName,
         imageUrl: url,
       );
 

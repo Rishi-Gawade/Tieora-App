@@ -6,8 +6,9 @@ import '../../core/theme/app_theme.dart';
 import '../../services/job_service.dart';
 import '../../models/job_model.dart';
 import '../../utils/location_helper.dart';
-
+import '../../services/ai_recommendation_service.dart';
 import 'jobs/job_detail_screen.dart';
+import '../../models/user_model.dart';
 
 class SeekerHome extends StatefulWidget {
   const SeekerHome({super.key});
@@ -18,9 +19,12 @@ class SeekerHome extends StatefulWidget {
 
 class _SeekerHomeState extends State<SeekerHome> {
   final JobService _jobService = JobService();
+  final AIRecommendationService _aiService = AIRecommendationService();
 
   List<JobModel> _jobs = [];
   bool _isLoading = false;
+
+  AppUser? _currentUser;
 
   int selectedMode = 0; // 0 Nearby, 1 City, 2 Remote
   double radius = 10;
@@ -54,6 +58,10 @@ class _SeekerHomeState extends State<SeekerHome> {
           .get();
 
       final userData = userDoc.data() ?? {};
+      final user = AppUser.fromMap(userData);
+
+      _currentUser = user;
+
       final userCity = userData['city'] ?? "";
 
       List<JobModel> jobs = [];
@@ -100,6 +108,16 @@ class _SeekerHomeState extends State<SeekerHome> {
           return domain.contains(selectedDomain.toLowerCase());
         }).toList();
       }
+
+      jobs.sort((a, b) {
+        final scoreA =
+            _aiService.calculateOverallMatch(user, a);
+
+        final scoreB =
+            _aiService.calculateOverallMatch(user, b);
+
+        return scoreB.compareTo(scoreA);
+      });
 
       setState(() {
         _jobs = jobs;
@@ -293,6 +311,13 @@ class _SeekerHomeState extends State<SeekerHome> {
       itemCount: _jobs.length,
       itemBuilder: (context, index) {
         final job = _jobs[index];
+        
+       final match = _currentUser == null
+    ? 0.0
+    : _aiService.calculateOverallMatch(
+        _currentUser!,
+        job,
+      );
 
         return Container(
           margin: const EdgeInsets.only(bottom: 18),
@@ -313,15 +338,49 @@ class _SeekerHomeState extends State<SeekerHome> {
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.work_outline),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(job.title)),
-                  if (job.isUrgent == true)
-                    const Text("🔥 URGENT"),
-                ],
-              ),
+            Row(
+              children: [
+
+                const Icon(Icons.work_outline),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Text(
+                    job.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "⭐ ${match.toInt()}%",
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+
+                if (job.isUrgent == true)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Text("🔥"),
+                  ),
+              ],
+            ),
 
               const SizedBox(height: 10),
 

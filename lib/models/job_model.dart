@@ -27,6 +27,9 @@ class JobModel {
   // 🚀 NEW FIELDS
   final String? city;
   final String? domain;
+  final List<dynamic>? skills;
+  final String? company;
+  final double? matchScore;
 
   JobModel({
     required this.id, // ✅ REQUIRED NOW
@@ -47,6 +50,9 @@ class JobModel {
     this.salary,
     this.city,
     this.domain,
+    this.skills,
+    this.company,
+    this.matchScore,
   });
 
   Map<String, dynamic> toMap() {
@@ -71,6 +77,8 @@ class JobModel {
 
       "city": city,
       "domain": domain,
+      "skills": skills,
+      "company": company,
     };
   }
 
@@ -104,6 +112,8 @@ class JobModel {
 
       city: map['city'],
       domain: map['domain'],
+      skills: map['skills'] ?? [],
+      company: map['company'] ?? '',
     );
   }
 
@@ -126,6 +136,9 @@ class JobModel {
     double? salary,
     String? city,
     String? domain,
+    List<dynamic>? skills,
+    String? company,
+    double? matchScore,
   }) {
     return JobModel(
       id: id ?? this.id,
@@ -146,6 +159,9 @@ class JobModel {
       salary: salary ?? this.salary,
       city: city ?? this.city,
       domain: domain ?? this.domain,
+      skills: skills ?? this.skills,
+      company: company ?? this.company,
+      matchScore: matchScore ?? this.matchScore,
     );
   }
 }

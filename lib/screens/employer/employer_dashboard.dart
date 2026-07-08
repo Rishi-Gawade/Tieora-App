@@ -19,7 +19,7 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   Stream<QuerySnapshot> getJobs() {
     return _firestore
         .collection('jobs')
-        .where('employerId', isEqualTo: employerId)
+        .where('postedBy', isEqualTo: employerId)
         .snapshots();
   }
 
@@ -119,6 +119,54 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
     );
   }
 
+  Widget _quickActionCard({
+  required IconData icon,
+  required String title,
+  required Color color,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    borderRadius: BorderRadius.circular(18),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: color.withOpacity(.12),
+            child: Icon(
+              icon,
+              color: color,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
 
@@ -130,28 +178,68 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
         child: const Icon(Icons.add),
       ),
 
-      body: SafeArea(
+     body: SafeArea(
+      child: SingleChildScrollView(
         child: Container(
           color: const Color(0xfff5f6fa),
           padding: const EdgeInsets.all(16),
 
-          child: Column(
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
+             Row(
+              children: [
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    const Text(
+                      "Good Morning 👋",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),  
+
+          const SizedBox(height: 6),
+
+          const Text(
+            "Employer Dashboard",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
               const Text(
-                "Employer Dashboard",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                "Manage your hiring efficiently",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
               ),
+            ],
+          ),
+        ),
 
-              const SizedBox(height: 8),
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.blue.shade100,
+            child: const Icon(
+              Icons.business,
+              color: Colors.blue,
+              size: 30,
+            ),
+          ),
+        ],
+      ),
 
-              const Text(
-                "Welcome Employer 👋",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               /// 🔥 STATS + INSIGHTS
               StreamBuilder<QuerySnapshot>(
@@ -169,7 +257,7 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                       int applicants = apps.length;
                       int hired = apps.where((a) {
                         final d = a.data() as Map<String, dynamic>;
-                        return d["status"] == "accepted";
+                        return d["status"] == "hired";
                       }).length;
 
                       return Column(
@@ -212,39 +300,165 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                 },
               ),
 
-              const SizedBox(height: 16),
+const SizedBox(height: 20),
 
-              const Text(
-                "Recent Activity",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+const Text(
+  "Quick Actions",
+  style: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  ),
+),
 
-              const SizedBox(height: 10),
+const SizedBox(height: 12),
 
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: getApplications(),
-                  builder: (context, snapshot) {
+Row(
+  children: [
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text("No recent activity"));
-                    }
+    Expanded(
+      child: _quickActionCard(
+        icon: Icons.add_circle_outline,
+        title: "Post Job",
+        color: Colors.blue,
+        onTap: () {
+          Navigator.pushNamed(context, "/post-job");
+        },
+      ),
+    ),
 
-                    final apps = snapshot.data!.docs.take(5).toList();
+    const SizedBox(width: 12),
 
-                    return ListView.builder(
-                      itemCount: apps.length,
-                      itemBuilder: (context, index) {
+    Expanded(
+      child: _quickActionCard(
+        icon: Icons.work_outline,
+        title: "My Jobs",
+        color: Colors.green,
+        onTap: () {
+          Navigator.pushNamed(context, "/my-jobs");
+        },
+      ),
+    ),
 
-                        final data =
-                            apps[index].data() as Map<String, dynamic>;
+    const SizedBox(width: 12),
 
-                        return ListTile(
-                          leading: const Icon(Icons.notifications),
-                          title: Text("${data["name"] ?? "Someone"} applied"),
-                          subtitle: Text(data["jobTitle"] ?? ""),
-                        );
-                      },
+    Expanded(
+      child: _quickActionCard(
+        icon: Icons.people_outline,
+        title: "Applicants",
+        color: Colors.orange,
+        onTap: () {
+          Navigator.pushNamed(context, "/my-jobs");
+        },
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 24),
+
+const Text(
+  "Recent Activity",
+  style: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+  ),
+),
+
+const SizedBox(height: 10),
+
+                SizedBox(
+                  height: 260,
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: getApplications(),
+                    builder: (context, snapshot) {
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text("No recent activity"));
+                      }
+
+                      final apps = snapshot.data!.docs.take(5).toList();
+
+                      return ListView.builder(
+                        itemCount: apps.length,
+                        itemBuilder: (context, index) {
+
+                          final data =
+                              apps[index].data() as Map<String, dynamic>;
+
+                          return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.blue.shade50,
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.blue,
+                            ),
+                          ),
+
+                          const SizedBox(width: 14),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+
+                                Text(
+                                  "${data["name"] ?? "Someone"}",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  "Applied for ${data["jobTitle"] ?? ""}",
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              "New",
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    },
                     );
                   },
                 ),
@@ -253,6 +467,7 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
           ),
         ),
       ),
+     ),
     );
   }
 }

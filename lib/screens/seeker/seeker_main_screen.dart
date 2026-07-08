@@ -63,9 +63,75 @@ class _SeekerMainScreenState
               icon: Icon(Icons.home),
               label: "Home"),
 
-          const BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              label: "Messages"),
+          BottomNavigationBarItem(
+            label: "Messages",
+            icon: uid == null
+                ? const Icon(Icons.chat_bubble_outline)
+                : StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('threads')
+                        .where('participants',
+                            arrayContains: uid)
+                        .snapshots(),
+                    builder: (context, snap) {
+                      int unreadCount = 0;
+
+                      if (snap.hasData) {
+                        for (final doc in snap.data!.docs) {
+                          final data =
+                              doc.data() as Map<String, dynamic>;
+
+                          final unreadMap =
+                              data['unreadCount'] ?? {};
+
+                          unreadCount +=
+                              (unreadMap[uid] ?? 0) as int;
+                        }
+                      }
+
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(Icons.chat_bubble_outline),
+
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: -6,
+                              top: -4,
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.all(4),
+                                decoration:
+                                    const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints:
+                                    const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    unreadCount > 9
+                                        ? '9+'
+                                        : '$unreadCount',
+                                    style:
+                                        const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white,
+                                      fontWeight:
+                                          FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+          ),
 
           BottomNavigationBarItem(
             label: "Notifications",
@@ -83,8 +149,10 @@ class _SeekerMainScreenState
                       }
 
                       final count = snap.hasData
-                          ? snap.data!.docs.length
-                          : 0;
+                        ? snap.data!.docs.where(
+                            (d) => d['isRead'] != true,
+                          ).length
+                        : 0;
 
                       return Stack(
                         clipBehavior: Clip.none,

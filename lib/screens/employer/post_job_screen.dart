@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/job_model.dart';
 import '../../services/job_service.dart';
 import '../../utils/location_helper.dart';
-import '../common/map_picker_screen.dart'; // ✅ NEW IMPORT
+import '../common/map_picker_screen.dart';
 import 'job_preview_screen.dart';
 
 class PostJobScreen extends StatefulWidget {
@@ -26,7 +26,35 @@ class _PostJobScreenState extends State<PostJobScreen> {
 
   final JobService _jobService = JobService();
 
-  String category = "General";
+  /// ✅ FIXED CATEGORY LIST
+  List<String> categories = [
+    "Skilled Services",
+    "General Work",
+    "Professional",
+  ];
+
+  /// OPTIONAL SUB-CATEGORIES (FUTURE USE)
+  Map<String, List<String>> subCategories = {
+    "Skilled Services": [
+      "Electrician",
+      "Plumber",
+      "Carpenter",
+      "Technician",
+    ],
+    "General Work": [
+      "Labour",
+      "Cleaner",
+      "Cook",
+      "Helper",
+    ],
+    "Professional": [
+      "Driver",
+      "Office Work",
+      "Other",
+    ],
+  };
+
+  String category = "Skilled Services";
   String jobType = "Full-time";
   String jobScope = "Local";
   String salaryType = "Fixed";
@@ -35,41 +63,23 @@ class _PostJobScreenState extends State<PostJobScreen> {
   int openings = 1;
   bool loading = false;
 
-  /// 🔥 STORE MAP LOCATION
   GeoPoint? selectedGeoPoint;
 
-  final List<String> categories = [
-    "General",
-    "Labour",
-    "Electrician",
-    "Plumber",
-    "Carpenter",
-    "Driver",
-    "Cook",
-    "Cleaner",
-    "Technician",
-    "Other",
-  ];
+String getDomain(String category) {
+  switch (category) {
+    case "Professional":
+      return "professional";
 
-  String getDomain(String category) {
-    final c = category.toLowerCase();
-
-    if ([
-      "labour",
-      "electrician",
-      "plumber",
-      "carpenter",
-      "driver",
-      "cleaner"
-    ].contains(c)) {
-      return "field";
-    } else if (["technician"].contains(c)) {
+    case "Skilled Services":
       return "technical";
-    }
 
-    return "field";
+    case "General Work":
+      return "field";
+
+    default:
+      return "field";
   }
-
+}
   String extractCity(String location) {
     final parts = location.split(",");
     return parts.isNotEmpty ? parts.last.trim() : location;
@@ -92,20 +102,19 @@ class _PostJobScreenState extends State<PostJobScreen> {
 
       final locationText = locationController.text.trim();
 
-      /// 🔥 USE MAP LOCATION FIRST
       GeoPoint? locationGeo = selectedGeoPoint;
 
-      /// fallback to text
-      locationGeo ??= await LocationHelper.geoFromText(locationText);
+locationGeo ??= await LocationHelper.geoFromText(locationText);
 
-      locationGeo ??= userData['locationGeo'];
+// Temporary fallback for demo
+locationGeo ??= const GeoPoint(
+  18.5204,
+  73.8567,
+);
 
-      if (locationGeo == null) {
-        throw Exception("Location required");
-      }
 
       final job = JobModel(
-         id: "",
+        id: "",
         title: jobController.text.trim(),
         shortDescription: shortDescController.text.trim(),
         description: descController.text.trim(),
@@ -114,7 +123,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
             ? "Negotiable"
             : wageController.text.trim(),
         postedBy: uid,
-        postedByName: userData["companyName"] ?? userData["fullName"] ?? "Employer",
+        postedByName:
+            userData["companyName"] ?? userData["fullName"] ?? "Employer",
         locationText: locationText,
         locationGeo: locationGeo,
         jobScope: jobScope.toLowerCase(),
@@ -165,7 +175,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
     );
   }
 
-  /// 🔥 OPEN MAP PICKER
   Future<void> openMapPicker() async {
     final result = await Navigator.push(
       context,
@@ -194,7 +203,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
           key: _formKey,
           child: ListView(
             children: [
-
               TextFormField(
                 controller: jobController,
                 decoration: const InputDecoration(
@@ -230,16 +238,24 @@ class _PostJobScreenState extends State<PostJobScreen> {
               ),
               gap,
 
+              /// ✅ FIXED CATEGORY DROPDOWN
               DropdownButtonFormField(
-                value: category,
+                value: categories.contains(category) ? category : null,
                 decoration: const InputDecoration(
                   labelText: "Category",
                   border: OutlineInputBorder(),
                 ),
                 items: categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c),
+                        ))
                     .toList(),
-                onChanged: (v) => setState(() => category = v!),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() => category = v);
+                  }
+                },
               ),
               gap,
 
@@ -250,9 +266,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: ["Full-time", "Part-time", "Contract"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) =>
+                        DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (v) => setState(() => jobType = v!),
+                onChanged: (v) =>
+                    setState(() => jobType = v!),
               ),
               gap,
 
@@ -263,9 +281,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: ["Local", "City", "Remote"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) =>
+                        DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (v) => setState(() => jobScope = v!),
+                onChanged: (v) =>
+                    setState(() => jobScope = v!),
               ),
               gap,
 
@@ -276,9 +296,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: ["Fixed", "Hourly", "Negotiable"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) =>
+                        DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (v) => setState(() => salaryType = v!),
+                onChanged: (v) =>
+                    setState(() => salaryType = v!),
               ),
               gap,
 
@@ -311,7 +333,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
                       ),
                       Text(openings.toString()),
                       IconButton(
-                        onPressed: () => setState(() => openings++),
+                        onPressed: () =>
+                            setState(() => openings++),
                         icon: const Icon(Icons.add),
                       ),
                     ],
@@ -324,25 +347,24 @@ class _PostJobScreenState extends State<PostJobScreen> {
               SwitchListTile(
                 title: const Text("Urgent Hiring"),
                 value: isUrgent,
-                onChanged: (v) => setState(() => isUrgent = v),
+                onChanged: (v) =>
+                    setState(() => isUrgent = v),
               ),
 
               gap,
 
-              /// LOCATION
               TextFormField(
-                controller: locationController,
-                decoration: const InputDecoration(
-                  labelText: "Job Location",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v!.isEmpty ? "Enter location" : null,
-              ),
+  controller: locationController,
+  decoration: const InputDecoration(
+    labelText: "Job Location",
+    prefixIcon: Icon(Icons.location_on),
+    suffixIcon: Icon(Icons.map),
+    border: OutlineInputBorder(),
+  ),
+),
 
               gap,
 
-              /// 🔥 MAP BUTTON (ONLY ADDITION)
               OutlinedButton(
                 onPressed: openMapPicker,
                 child: const Text("Select on Map"),
@@ -362,7 +384,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   : ElevatedButton(
                       onPressed: postJob,
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 14),
                         child: Text("Post Job"),
                       ),
                     ),

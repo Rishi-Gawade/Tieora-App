@@ -39,16 +39,28 @@ class _SeekerJobsScreenState extends State<SeekerJobsScreen> {
   List<String> _userSkills = [];
   Map<String, Map<String, dynamic>> _userCache = {};
 
-  int selectedMode = 0;
+  int selectedMode = -1;
   double radius = 10;
   String selectedDomain = "All";
 
-  final List<String> domains = [
-    "All",
-    "it",
-    "electrician",
-    "mechanic"
-  ];
+final List<String> domains = [
+  "All",
+  "IT",
+  "Electrician",
+  "Mechanic",
+  "Driver",
+  "Delivery",
+  "Plumber",
+  "Carpenter",
+  "Construction",
+  "Office",
+  "Student",
+  "Freelance",
+  "Security",
+  "Cleaner",
+  "Painter",
+  "Technician",
+]; 
 
   @override
   void initState() {
@@ -129,39 +141,66 @@ if (data != null) {
     }
   }
 
-  Future<List<JobModel>> _applyFilters(List<JobModel> jobs) async {
-    if (_userLocation == null) return jobs;
+List<JobModel> _applyFilters(List<JobModel> jobs) {
 
-    List<JobModel> filtered = [];
+  List<JobModel> filtered = List.from(jobs);
 
-    for (var job in jobs) {
-      if (job.locationGeo == null) continue;
+  // Nearby
+  if (selectedMode == 0) {
+    filtered = filtered.where((job) {
+
+      if ((job.jobScope ?? "").toLowerCase() != "local") {
+        return false;
+      }
+
+      if (_userLocation == null || job.locationGeo == null) {
+        return false;
+      }
+      debugPrint("User Location : ${_userLocation!.latitude}, ${_userLocation!.longitude}");
+      debugPrint("Job Location  : ${job.locationGeo!.latitude}, ${job.locationGeo!.longitude}");
 
       final distance = LocationHelper.calculateDistance(
         _userLocation!,
         job.locationGeo!,
       );
 
-      if (selectedMode == 0 && distance <= radius) {
-        filtered.add(job);
-      } else if (selectedMode == 1) {
-        filtered.add(job);
-      } else if (selectedMode == 2 &&
-          job.jobScope == "remote") {
-        filtered.add(job);
-      }
-    }
+      debugPrint("Distance = $distance");
 
-    if (selectedDomain != "All") {
-      filtered = filtered.where((job) {
-        return job.category
-            .toLowerCase()
-            .contains(selectedDomain);
-      }).toList();
-    }
+      return distance <= radius;
 
-    return filtered;
+    }).toList();
   }
+
+  // City
+  else if (selectedMode == 1) {
+    filtered = filtered.where((job) {
+
+      return (job.jobScope ?? "").toLowerCase() == "city";
+
+    }).toList();
+  }
+
+  // Remote
+  else if (selectedMode == 2) {
+    filtered = filtered.where((job) {
+
+      return (job.jobScope ?? "").toLowerCase() == "remote";
+
+    }).toList();
+  }
+
+  // Category
+  if (selectedDomain != "All") {
+    filtered = filtered.where((job) {
+      return (job.domain ?? "")
+          .toLowerCase()
+          .contains(selectedDomain.toLowerCase());
+    }).toList();
+  }
+
+  return filtered;
+}
+
 
   void _openFilterSheet() {
     showModalBottomSheet(
@@ -173,19 +212,43 @@ if (data != null) {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.70,
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                 child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  const Text("Filters",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Filter Jobs",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 6),
 
-                  const SizedBox(height: 20),
+                  const Text(
+                    "Find jobs that match your preference",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const Text(
+                    "Job Scope",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
 
                   Row(
                     children: [
@@ -202,12 +265,18 @@ if (data != null) {
                       crossAxisAlignment:
                           CrossAxisAlignment.start,
                       children: [
-                        Text("Radius: ${radius.toInt()} km"),
+                       Text(
+                        "Search Radius (${radius.toInt()} km)",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                         Slider(
                           value: radius,
                           min: 0,
-                          max: 15,
-                          divisions: 15,
+                          max: 20,
+                          divisions: 20,
                           label: "${radius.toInt()} km",
                           onChanged: (value) {
                             setModalState(() => radius = value);
@@ -218,7 +287,13 @@ if (data != null) {
 
                   const SizedBox(height: 20),
 
-                  const Text("Category"),
+                  const Text(
+                    "Category",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 10),
 
                   Wrap(
@@ -226,9 +301,20 @@ if (data != null) {
                     children: domains.map((d) {
                       final selected = selectedDomain == d;
 
-                      return ChoiceChip(
-                        label: Text(d),
+                     return ChoiceChip(
+                        label: Text(
+                          d,
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         selected: selected,
+                        selectedColor: AppTheme.primaryBlue,
+                        backgroundColor: Colors.grey.shade100,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         onSelected: (_) {
                           setModalState(() => selectedDomain = d);
                         },
@@ -238,14 +324,37 @@ if (data != null) {
 
                   const SizedBox(height: 20),
 
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {});
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Apply Filters"),
-                  ),
+                 Row(
+                  children: [
+
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          setModalState(() {
+                            selectedMode = -1;
+                            selectedDomain = "All";
+                            radius = 10;
+                          });
+                        },
+                        child: const Text("Reset"),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {});
+                          Navigator.pop(context);
+                        },
+                        child: const Text("Apply"),
+                      ),
+                    ),
+                  ],
+                ),
                 ],
+              ),
               ),
             );
           },
@@ -329,49 +438,55 @@ if (data != null) {
             ),
 
           Expanded(
-            child: StreamBuilder<List<JobModel>>(
-              stream: _jobService.getJobs(),
-              builder: (context, snap) {
+              child: StreamBuilder<List<JobModel>>(
+                stream: _jobService.getJobs(),
+                builder: (context, snap) {
 
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const AppLoader();
-                }
+                  /// 🔥 HANDLE LOADING
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const AppLoader();
+                  }
 
-                if (snap.hasError) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    AppSnackbar.showError(
-                      context,
-                      "Failed to load jobs",
+                  /// 🔥 HANDLE ERROR (NO UI BREAK)
+                  if (snap.hasError) {
+                    return Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {});
+                        },
+                        child: const Text("Retry"),
+                      ),
                     );
-                  });
+                  }
 
-                  return Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        (context as Element).markNeedsBuild();
-                      },
-                      child: const Text("Retry"),
-                    ),
-                  );
-                }
+                  /// 🔥 VERY IMPORTANT (FIX GREY SCREEN)
+                  if (!snap.hasData || snap.data == null) {
+                    return const AppEmptyState(
+                      icon: Icons.work_outline,
+                      title: "No jobs available",
+                      subtitle: "Please try again later",
+                    );
+                  }
 
-                return FutureBuilder<List<JobModel>>(
-                  future: _applyFilters(snap.data ?? []),
-                  builder: (context, filteredSnap) {
+                  /// 🔥 SAFE DATA
+                  final allJobs = snap.data!;
 
-                    if (filteredSnap.connectionState == ConnectionState.waiting) {
-                      return const AppLoader();
-                    }
+                  debugPrint("TOTAL JOBS => ${allJobs.length}");
 
-                   final jobs = (filteredSnap.data ?? [])
+                  /// 🔥 APPLY FILTERS
+                  final filteredJobs = _applyFilters(allJobs);
+                  debugPrint("Filtered Jobs => ${filteredJobs.length}");
+
+                  /// 🔥 SEARCH
+                  final jobs = filteredJobs
                       .where((job) =>
-                          job.title.toLowerCase().contains(
-                              _searchController.text.toLowerCase()))
+                          (job.title ?? "").toLowerCase()
+                              .contains(_searchController.text.toLowerCase()))
                       .toList();
 
-                  /// 🔥 ADD THIS LINE HERE (IMPORTANT)
+                  /// 🔥 SORT
                   jobs.sort((a, b) =>
-                    _calculateScore(b).compareTo(_calculateScore(a)));
+                      _calculateScore(b).compareTo(_calculateScore(a)));
 
                   if (jobs.isEmpty) {
                     return const AppEmptyState(
@@ -380,14 +495,30 @@ if (data != null) {
                       subtitle: "Try adjusting filters or search",
                     );
                   }
-                    
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: jobs.length,
-                      itemBuilder: (context, i) {
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: jobs.length,
+                    itemBuilder: (context, i) {
 
                         final job = jobs[i];
+
+                        final ai = _calculateScore(job);
+
+                        Color badgeColor;
+
+                        String recommendation;
+
+                        if (ai >= 85) {
+                          badgeColor = Colors.green;
+                          recommendation = "Excellent Match";
+                        } else if (ai >= 60) {
+                          badgeColor = Colors.orange;
+                          recommendation = "Good Match";
+                        } else {
+                          badgeColor = Colors.red;
+                          recommendation = "Low Match";
+                        }
 
                         double? distance;
                         if (_userLocation != null &&
@@ -407,7 +538,7 @@ if (data != null) {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    JobDetailScreen(jobId: job.id!),
+                                    JobDetailScreen(jobId: job.id),
                               ),
                             );
                           },
@@ -438,22 +569,27 @@ if (data != null) {
                                       child: Text(
                                         job.title,
                                         style: const TextStyle(
-                                          fontWeight:
-                                              FontWeight.bold,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
                                         ),
                                       ),
                                     ),
-                                    if (_calculateScore(job) > 50)
+                                    if (ai > 50)
                                           Container(
                                             margin: const EdgeInsets.only(right: 6),
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: Colors.green,
+                                              color: badgeColor,
                                               borderRadius: BorderRadius.circular(6),
                                             ),
-                                            child: const Text(
-                                              "Recommended",
-                                              style: TextStyle(color: Colors.white, fontSize: 10),
+                                            child: Text(
+                                              "⭐ ${ai.toInt()}%",
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                     IconButton(
@@ -463,53 +599,106 @@ if (data != null) {
                                             : Icons.bookmark_border,
                                       ),
                                       onPressed: () =>
-                                          _toggleSave(job.id!),
+                                          _toggleSave(job.id),
                                     ),
                                   ],
                                 ),
 
-                                Text(job.locationText ?? ""),
+                                Text(
+                                  job.locationText ?? "",
+                                ),
 
-                                /// ⭐ RATING ADDED HERE
-                           FutureBuilder<DocumentSnapshot>(
-                              future: _userCache.containsKey(job.postedBy)
-                                  ? Future.value(null)
-                                  : FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(job.postedBy)
-                                      .get(),
-                              builder: (context, snap) {
+                                const SizedBox(height: 4),
 
-                                Map<String, dynamic>? user;
-
-                                /// 🔥 USE CACHE FIRST
-                                if (_userCache.containsKey(job.postedBy)) {
-                                  user = _userCache[job.postedBy];
-                                }
-
-                                /// 🔥 FETCH & STORE
-                                else if (snap.hasData && snap.data!.exists) {
-                                  user = snap.data!.data() as Map<String, dynamic>;
-                                  _userCache[job.postedBy] = user;
-                                }
-
-                                if (user == null) return const SizedBox();
-
-                                final rating = (user['rating'] ?? 0).toDouble();
-                                final total = user['totalRatings'] ?? 0;
-
-                                if (total == 0) return const SizedBox();
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: AppRating(
-                                    rating: rating,
-                                    totalRatings: total,
-                                    size: 14,
+                                Text(
+                                  job.company ?? "",
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                                
+                                const SizedBox(height: 4),
+
+                                  Text(
+                                    "₹ ${job.wage}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                if (distance != null) ...[
+                                  Builder(
+                                    builder: (context) {
+
+                                      String label;
+
+                                      if (distance! < 2) {
+                                        label = "🔥 Very close (${distance.toStringAsFixed(1)} km)";
+                                      } else if (distance! < 5) {
+                                      label = "📍 Nearby (${distance.toStringAsFixed(1)} km)";
+                                      } else {
+                                        label = "🌍 ${distance.toStringAsFixed(1)} km away";
+                                      }
+
+                                      return Container(
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          label,
+                                          style: const TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                                /// ⭐ RATING ADDED HERE
+                          FutureBuilder<DocumentSnapshot?>(
+                            future: _userCache.containsKey(job.postedBy)
+                                ? Future.value(null)
+                                : FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(job.postedBy)
+                                    .get(),
+                            builder: (context, snap) {
+
+                              Map<String, dynamic>? user;
+
+                              if (_userCache.containsKey(job.postedBy)) {
+                                user = _userCache[job.postedBy];
+                              } else if (snap.hasData && snap.data != null && snap.data!.exists) {
+                                user = snap.data!.data() as Map<String, dynamic>;
+                                _userCache[job.postedBy] = user;
+                              }
+
+                              if (user == null) return const SizedBox();
+
+                              final rating = (user['rating'] ?? 0).toDouble();
+                              final total = user['totalRatings'] ?? 0;
+
+                              if (total == 0) return const SizedBox();
+
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: AppRating(
+                                  rating: rating,
+                                  totalRatings: total,
+                                  size: 14,
+                                ),
+                              );
+                            },
+                          ),
 
                                 if (distance != null)
                                   Text(
@@ -540,10 +729,9 @@ if (data != null) {
                       },
                     );
                   },
-                );
-              },
-            ),
-          ),
+                ),
+            )
+  
         ],
       ),
     );
@@ -554,28 +742,68 @@ void dispose() {
   _searchController.dispose();
   super.dispose();
 }
-  double _calculateScore(JobModel job) {
+ double _calculateScore(JobModel job) {
   double score = 0;
 
-  if (_userSkills.any((s) =>
-      (job.category ?? "").toLowerCase().contains(s))) {
-    score += 50;
+  final title = (job.title ?? "").toLowerCase();
+  final category = (job.category ?? "").toLowerCase();
+  final domain = (job.domain ?? "").toLowerCase();
+
+  // -------------------------
+  // 1. Skills Match (50)
+  // -------------------------
+  int matchedSkills = 0;
+
+  for (final skill in _userSkills) {
+    if (title.contains(skill) ||
+        category.contains(skill) ||
+        domain.contains(skill)) {
+      matchedSkills++;
+    }
   }
 
-  if (_userLocation != null && job.locationGeo != null) {
-    final distance = LocationHelper.calculateDistance(
-      _userLocation!,
-      job.locationGeo!,
-    );
-
-    if (distance < 5) score += 40;
-    else if (distance < 10) score += 20;
+  if (_userSkills.isNotEmpty) {
+    score += (matchedSkills / _userSkills.length) * 50;
   }
 
-  if (job.jobScope == "remote") {
+  // -------------------------
+  // 2. Preferred Domain (20)
+  // -------------------------
+  if (selectedDomain != "All") {
+    if (domain.contains(selectedDomain.toLowerCase())) {
+      score += 20;
+    }
+  }
+
+  // -------------------------
+  // 3. Job Scope (15)
+  // -------------------------
+  switch ((job.jobScope ?? "").toLowerCase()) {
+    case "city":
+      score += 15;
+      break;
+    case "remote":
+      score += 12;
+      break;
+    case "local":
+      score += 10;
+      break;
+  }
+
+  // -------------------------
+  // 4. Salary (15)
+  // -------------------------
+  final salary =
+      double.tryParse(job.wage.toString()) ?? 0;
+
+  if (salary >= 50000) {
+    score += 15;
+  } else if (salary >= 30000) {
     score += 10;
+  } else if (salary >= 15000) {
+    score += 5;
   }
 
-  return score;
+  return score.clamp(0, 100);
 }
 }

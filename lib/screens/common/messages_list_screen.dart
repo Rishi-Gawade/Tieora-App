@@ -26,6 +26,7 @@ class MessagesListScreen extends StatelessWidget {
     final ChatService chatService = ChatService();
 
     return Scaffold(
+    backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
         title: const Text(
           "Messages",
@@ -74,7 +75,10 @@ class MessagesListScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             itemCount: threads.length,
             itemBuilder: (context, index) {
 
@@ -126,7 +130,10 @@ class MessagesListScreen extends StatelessWidget {
 
               final bool hasUnread = unread > 0;
 
-              return GestureDetector(
+             return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
                 onTap: () {
                   if (otherUserId.isEmpty) return;
 
@@ -144,17 +151,19 @@ class MessagesListScreen extends StatelessWidget {
 
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
 
-                  decoration: BoxDecoration(
+                 decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(
-                      AppTheme.defaultRadius,
-                    ),
+                    borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
+                        color: Colors.black.withOpacity(.06),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -163,111 +172,128 @@ class MessagesListScreen extends StatelessWidget {
                     children: [
 
                       /// ICON
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue
-                              .withOpacity(0.1),
-                          borderRadius:
-                              BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.work,
-                          color: AppTheme.primaryBlue,
-                        ),
+                      CircleAvatar(
+                      radius: 30,
+                      backgroundColor: AppTheme.primaryBlue.withOpacity(.10),
+                      child: const Icon(
+                        Icons.business,
+                        color: AppTheme.primaryBlue,
+                        size: 30,
                       ),
+                    ),
 
                       const SizedBox(width: 14),
 
                       /// TEXT
-                      Expanded(
+                     Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
 
-                            /// 👤 NAME
-                            Text(
-                              name,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: hasUnread
-                                    ? FontWeight.bold
-                                    : FontWeight.w600,
+                              /// Top Row
+                              Row(
+                                children: [
+
+                                  Expanded(
+                                    child: Text(
+                                      jobTitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      timeLabel,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
 
-                            const SizedBox(height: 2),
+                              const SizedBox(height: 5),
 
-                            /// 💼 JOB TITLE
-                            Text(
-                              jobTitle,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
-                              ),
-                            ),
-
-                            const SizedBox(height: 4),
-
-                            /// 💬 LAST MESSAGE
-                            Text(
-                              lastMessage,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: hasUnread
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      /// TIME + BADGE
-                      Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.end,
-                        children: [
-
-                          Text(
-                            timeLabel,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-
-                          if (hasUnread)
-                            Container(
-                              margin:
-                                  const EdgeInsets.only(top: 6),
-                              padding:
-                                  const EdgeInsets.all(6),
-                              decoration:
-                                  const BoxDecoration(
-                                color: AppTheme.primaryBlue,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                unread > 9 ? '9+' : '$unread',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                  fontWeight:
-                                      FontWeight.bold,
+                              /// Employer Name
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+
+                              const SizedBox(height: 10),
+
+                              /// Last Message
+                              Row(
+                                children: [
+
+                                  Expanded(
+                                    child: Text(
+                                      lastMessage,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.grey.shade800,
+                                        fontWeight:
+                                            hasUnread
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+
+                                  if (hasUnread)
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 12),
+                                      constraints: const BoxConstraints(
+                                        minHeight: 24,
+                                        minWidth: 24,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.primaryBlue,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        unread > 9 ? "9+" : "$unread",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+              ),
                 ),
+              ),
               );
             },
           );

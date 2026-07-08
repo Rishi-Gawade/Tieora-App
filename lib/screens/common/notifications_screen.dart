@@ -179,10 +179,11 @@ class NotificationsScreen extends StatelessWidget {
                       .toString();
 
               if (type == "message" &&
-                  senderName.isNotEmpty &&
-                  body.isNotEmpty) {
-                body = "$senderName: $body";
-              }
+              senderName.isNotEmpty &&
+              body.isNotEmpty &&
+              !body.startsWith(senderName)) {
+            body = "$senderName: $body";
+          }
 
               final String jobTitle =
                   (data['jobTitle'] ?? '').toString();
@@ -208,7 +209,7 @@ class NotificationsScreen extends StatelessWidget {
               final color = _colorForType(type);
 
               return InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(22),
                 onTap: () async {
 
                   try {
@@ -250,48 +251,34 @@ class NotificationsScreen extends StatelessWidget {
 
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: isRead
                         ? Colors.white
                         : color.withOpacity(0.06),
                     borderRadius:
-                        BorderRadius.circular(16),
+                        BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withOpacity(.06),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
 
                   child: Row(
                     children: [
-                      Container(
-                        width: 4,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius:
-                              BorderRadius.circular(4),
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: color.withOpacity(.12),
+                          child: Icon(
+                            _iconForType(type),
+                            color: color,
+                            size: 28,
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
-                          borderRadius:
-                              BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          _iconForType(type),
-                          color: color,
-                        ),
-                      ),
 
                       const SizedBox(width: 14),
 
@@ -300,15 +287,16 @@ class NotificationsScreen extends StatelessWidget {
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: isRead
-                                    ? FontWeight.w500
-                                    : FontWeight.w700,
-                              ),
+                           Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
+                          ),
 
                             if (body.isNotEmpty)
                               Padding(
@@ -316,9 +304,12 @@ class NotificationsScreen extends StatelessWidget {
                                     const EdgeInsets.only(top: 2),
                                 child: Text(
                                   body,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: Colors.grey.shade700,
-                                    fontSize: 13,
+                                    fontSize: 15,
+                                    height: 1.4,
                                   ),
                                 ),
                               ),
@@ -339,11 +330,22 @@ class NotificationsScreen extends StatelessWidget {
                         ),
                       ),
 
-                      Text(
-                        timeLabel,
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Text(
+                          timeLabel,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],

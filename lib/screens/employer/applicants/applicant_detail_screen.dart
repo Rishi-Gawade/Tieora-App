@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import '../../../services/notification_write_service.dart';
 import '../../common/message_detail_screen.dart';
 import '../../../services/chat_service.dart';
 import '../../common/rating_screen.dart';
@@ -32,31 +32,68 @@ class ApplicantDetailScreen extends StatefulWidget {
 
 class _ApplicantDetailScreenState
     extends State<ApplicantDetailScreen> {
-
+final NotificationWriteService _notificationService =
+    NotificationWriteService();
   final ChatService _chatService = ChatService();
 
   bool _loadingComplete = false;
 
   /// 🔥 STATUS UPDATE
   Future<void> _updateStatus(String newStatus) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('applications')
-          .doc(widget.applicantId)
-          .update({'status': newStatus});
+  try {
 
-      if (!mounted) return;
+    await FirebaseFirestore.instance
+        .collection('applications')
+        .doc(widget.applicantId)
+        .update({
+      'status': newStatus,
+    });
 
-      Navigator.pop(context);
+    /// SEND NOTIFICATION TO SEEKER
 
-      AppSnackbar.showSuccess(
-          context, "Application $newStatus");
-
-    } catch (e) {
-      AppSnackbar.showError(
-          context, "Failed to update status");
+    if (newStatus == 'accepted') {
+      await _notificationService.createNotification(
+        userId: widget.seekerId,
+        type: 'hired',
+        title: 'Application Accepted',
+        body:
+            'Congratulations! You have been selected for ${widget.jobTitle}',
+        jobId: widget.jobId,
+        jobTitle: widget.jobTitle,
+      );
     }
-  }
+
+    if (newStatus == 'rejected') {
+      await _notificationService.createNotification(
+        userId: widget.seekerId,
+        type: 'rejected',
+        title: 'Application Rejected',
+        body:
+            'Your application for ${widget.jobTitle} was not selected.',
+        jobId: widget.jobId,
+        jobTitle: widget.jobTitle,
+      );
+    }
+
+    if (!mounted) return;
+
+    Navigator.pop(context);
+
+    AppSnackbar.showSuccess(
+      context,
+      "Application $newStatus",
+    );
+
+  } catch (e, stack) {
+  debugPrint(e.toString());
+  debugPrint(stack.toString());
+
+  AppSnackbar.showError(
+    context,
+    "Failed to update status",
+  );
+}
+}
 
   /// 🔥 MARK COMPLETED (SAFE)
  Future<void> _markCompleted() async {
@@ -75,19 +112,14 @@ class _ApplicantDetailScreenState
     });
 
     /// 🔔 STEP 2: ADD NOTIFICATION (NEW)
-    await FirebaseFirestore.instance
-        .collection('notifications')
-        .doc(widget.seekerId)
-        .collection('items')
-        .add({
-      "type": "completed",
-      "title": "Job Completed",
-      "body": "Please rate your experience",
-      "jobId": widget.jobId,
-      "createdAt": FieldValue.serverTimestamp(),
-      "isRead": false,
-    });
-
+await _notificationService.createNotification(
+  userId: widget.seekerId,
+  type: 'completed',
+  title: 'Job Completed',
+  body: 'Please rate your experience',
+  jobId: widget.jobId,
+  jobTitle: widget.jobTitle,
+);
     if (!mounted) return;
 
     /// ✅ STEP 3: FEEDBACK
@@ -322,30 +354,37 @@ class _ApplicantDetailScreenState
                     label:
                         const Text("Message Applicant"),
                     onPressed: () async {
-                      final employer =
-                          FirebaseAuth.instance
-                              .currentUser;
+                      final employer = FirebaseAuth.instance.currentUser;
                       if (employer == null) return;
 
+                      final employerDoc = await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(employer.uid)
+                          .get();
+
+                      final employerName =
+                          employerDoc.data()?['fullName'] ?? "Employer";
+
                       final threadId =
-                          await _chatService
-                              .createOrGetThread(
-                        employer.uid,
-                        seekerId,
-                        "Employer",
-                        name,
-                        widget.jobId,
-                      );
+                        await _chatService.createOrGetThread(
+                      seekerId: seekerId,
+                      employerId: employer.uid,
+                      seekerName: name,
+                      employerName: employerName,
+                      jobId: widget.jobId,
+                      jobTitle: widget.jobTitle,
+                      companyName: employerName,
+                      jobLocation: location,
+                      jobScope: "local",
+                    );
 
                       if (context.mounted) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                MessageDetailScreen(
+                            builder: (_) => MessageDetailScreen(
                               threadId: threadId,
-                              jobTitle:
-                                  widget.jobTitle,
+                              jobTitle: widget.jobTitle,
                               otherUserId: seekerId,
                             ),
                           ),

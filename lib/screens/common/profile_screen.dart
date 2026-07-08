@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../core/widgets/app_rating.dart';
 import '../../utils/location_helper.dart';
 
@@ -93,42 +94,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _useCurrentLocation() async {
-    try {
-      LocationPermission permission =
-          await Geolocator.requestPermission();
+  try {
+    LocationPermission permission =
+        await Geolocator.requestPermission();
 
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        throw Exception("Location permission denied");
-      }
-
-      final position = await Geolocator.getCurrentPosition();
-
-      final lat = position.latitude;
-      final lng = position.longitude;
-
-      final address =
-          await LocationHelper.getAddressFromLatLng(lat, lng);
-
-      setState(() {
-        locationController.text = address ?? "$lat, $lng";
-      });
-
-      userDoc.reference.update({
-        "locationGeo": GeoPoint(lat, lng),
-        "locationText": address ?? "$lat, $lng",
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location updated from GPS ✅")),
-      );
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Location error: $e")),
-      );
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      throw Exception("Location permission denied");
     }
+
+    final position = await Geolocator.getCurrentPosition();
+
+    final lat = position.latitude;
+    final lng = position.longitude;
+    String city = "";
+
+String address = "Fetching location...";
+
+try {
+  final placemarks = await placemarkFromCoordinates(lat, lng);
+  
+  if (placemarks.isNotEmpty) {
+    final place = placemarks.first;
+
+    city = place.locality ?? place.subAdministrativeArea ?? "";
+    
+    final state = place.administrativeArea ?? "";
+    final country = place.country ?? "";
+
+    final formatted = [city, state, country]
+        .where((e) => e.isNotEmpty)
+        .join(", ");
+
+    address = formatted.isNotEmpty
+        ? formatted
+        : "Location detected";
+  } else {
+    address = "Location detected";
   }
+} catch (e) {
+  debugPrint("Geocoding failed: $e");
+  address = "Location detected";
+}
+
+/// 🔥 UPDATE UI
+setState(() {
+  locationController.text = address;
+});
+
+/// 🔥 SAVE IN FIRESTORE
+await userDoc.reference.update({
+  "locationGeo": GeoPoint(lat, lng),
+  "locationText": address,
+  "city": city,
+});
+await loadProfile();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Location updated from GPS ✅")),
+    );
+
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Location error: $e")),
+    );
+  }
+}
 
   Future<void> _pickImage() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);

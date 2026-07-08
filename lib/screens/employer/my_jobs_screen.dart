@@ -101,7 +101,15 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
         .where('postedBy', isEqualTo: uid);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Jobs')),
+      appBar: AppBar(
+        elevation: 0,
+        title: const Text(
+          "My Jobs",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<QuerySnapshot>(
@@ -157,168 +165,272 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
                     final description = job['description'] ?? '';
                     final location = job['locationText'] ?? '';
                     final wage = job['wage'] ?? '';
-                    final jobType = job['jobType'] ?? '';
                     final status = job['status'] ?? 'active';
                     final timestamp = job['timestamp'];
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                   return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                    BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                    ),
+                    ],
+                    border: Border.all(
+                    color: Colors.grey.shade200,
+                    ),
+                    ),
+                    child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
 
-                            /// TITLE + STATUS
-                            Row(
+
+                        /// HEADER
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                 maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor(status).withOpacity(.12),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  color: statusColor(status),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          description,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        /// LOCATION
+                        if (location.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
                               children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    title,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    location,
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: statusColor(status).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                              ],
+                            ),
+                          ),
+
+                        /// SALARY
+                        if (wage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.currency_rupee,
+                                  size: 18,
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "₹ ${wage.toString()}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  child: Text(
-                                    status.toUpperCase(),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        /// TIME
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.schedule_outlined,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              timeAgo(timestamp),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        /// APPLICANTS
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('applications')
+                              .where('jobId', isEqualTo: jobId)
+                              .snapshots(),
+                          builder: (context, appSnap) {
+                            final count = appSnap.data?.docs.length ?? 0;
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.people_alt_outlined,
+                                    color: Colors.blue.shade700,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "$count Applicant${count == 1 ? '' : 's'} Applied",
                                     style: TextStyle(
-                                      color: statusColor(status),
-                                      fontSize: 12,
+                                      color: Colors.blue.shade700,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                )
-                              ],
-                            ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
 
-                            const SizedBox(height: 6),
+                        const SizedBox(height: 16),
 
-                            Text(
-                              description,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        /// ACTIONS
+                        Row(
+                          children: [
 
-                            if (location.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(location),
-                            ],
-
-                            const SizedBox(height: 6),
-
-                            /// EXTRA INFO
-                            Row(
-                              children: [
-                                if (wage.isNotEmpty) Text("₹ $wage  •  "),
-                                if (jobType.isNotEmpty) Text("$jobType  •  "),
-                                Text(timeAgo(timestamp)),
-                              ],
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            /// 🔥 APPLICANTS COUNT
-                            StreamBuilder<QuerySnapshot>(
-                              stream: FirebaseFirestore.instance
-                                  .collection('applications')
-                                  .where('jobId', isEqualTo: jobId)
-                                  .snapshots(),
-                              builder: (context, appSnap) {
-                                final count =
-                                    appSnap.data?.docs.length ?? 0;
-
-                                return Row(
-                                  children: [
-                                    const Icon(Icons.people, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text("$count applicants"),
-                                  ],
-                                );
-                              },
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            /// ACTIONS
-                            Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ApplicantsScreen(jobId: jobId),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.people),
-                                  label: const Text('View Applicants'),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ApplicantsScreen(jobId: jobId),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.people_alt_outlined),
+                                label: const Text("Applicants"),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(46),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
+                              ),
+                            ),
 
-                                Row(
-                                  children: [
+                            const SizedBox(width: 10),
 
-                                    /// 🔥 QUICK STATUS
-                                    PopupMenuButton<String>(
-                                      onSelected: (value) =>
-                                          updateStatus(jobId, value),
-                                      itemBuilder: (_) => const [
-                                        PopupMenuItem(
-                                            value: "active",
-                                            child: Text("Mark Active")),
-                                        PopupMenuItem(
-                                            value: "closed",
-                                            child: Text("Close Job")),
-                                        PopupMenuItem(
-                                            value: "filled",
-                                            child: Text("Mark Filled")),
-                                      ],
-                                      child: const Icon(Icons.more_vert),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditJobScreen(jobId: jobId),
                                     ),
+                                  );
+                                },
+                                icon: const Icon(Icons.edit_outlined),
+                                label: const Text("Edit"),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(46),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
 
-                                    IconButton(
-                                      icon: const Icon(Icons.edit,
-                                          color: Colors.blue),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                EditJobScreen(jobId: jobId),
-                                          ),
-                                        );
-                                      },
-                                    ),
-
-                                    IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () => deleteJob(jobId),
-                                    ),
-                                  ],
+                            PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == "delete") {
+                                  deleteJob(jobId);
+                                } else {
+                                  updateStatus(jobId, value);
+                                }
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: "active",
+                                  child: Text("Mark Active"),
+                                ),
+                                PopupMenuItem(
+                                  value: "filled",
+                                  child: Text("Mark Filled"),
+                                ),
+                                PopupMenuItem(
+                                  value: "closed",
+                                  child: Text("Close Job"),
+                                ),
+                                PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: "delete",
+                                  child: Text(
+                                    "Delete",
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
-                      ),
+                      ],
+                    ),
+
+                    ),
                     );
+
                   },
                 );
               },

@@ -10,7 +10,7 @@ import '../../../services/chat_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/app_snackbar.dart';
-
+import '../../../services/notification_write_service.dart';
 import '../../common/message_detail_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -27,6 +27,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   late final ApplicationService _applicationService;
   late final ChatService _chatService;
+
+  final NotificationWriteService _notificationService =
+    NotificationWriteService();
 
   bool _applying = false;
   bool _alreadyApplied = false;
@@ -75,17 +78,37 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           (seekerData['fullName'] ?? 'User').toString();
 
       final threadId = await _chatService.createOrGetThread(
-        user.uid,
-        job.postedBy,
-        seekerName,
-        job.postedByName,
-        job.id!,
-      );
-
+  seekerId: user.uid,
+  employerId: job.postedBy,
+  seekerName: seekerName,
+  employerName: job.postedByName,
+  jobId: job.id,
+  jobTitle: job.title,
+  companyName: job.postedByName,
+jobLocation: job.locationText ?? "",
+jobScope: job.jobScope ?? "local",
+);
       await FirebaseFirestore.instance
-          .collection('threads')
-          .doc(threadId)
-          .update({"jobTitle": job.title});
+    .collection('threads')
+    .doc(threadId)
+    .update({
+
+      "jobTitle": job.title,
+
+      "companyName": job.postedByName,
+
+      "jobLocation": job.locationText,
+
+      "jobScope": job.jobScope,
+
+      "employerId": job.postedBy,
+
+      "employerName": job.postedByName,
+
+      "seekerId": seekerId,
+
+      "seekerName": seekerName,
+    });
 
       if (!mounted) return;
 
@@ -109,28 +132,28 @@ Future<void> _applyToJob(JobModel job) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    /// 🔥 LOCAL CHECK (UI LEVEL)
+    /// 🔥 LOCAL CHECK
     if (_alreadyApplied) {
       AppSnackbar.showError(context, "Already applied");
       return;
     }
 
-    /// 🔥 FIRESTORE CHECK (CRITICAL)
-final existing = await FirebaseFirestore.instance
-    .collection('applications')
-    .where('jobId', isEqualTo: job.id)
-    .where('seekerId', isEqualTo: user.uid)
-    .limit(1)
-    .get();
+    /// 🔥 FIRESTORE CHECK
+    final existing = await FirebaseFirestore.instance
+        .collection('applications')
+        .where('jobId', isEqualTo: job.id)
+        .where('seekerId', isEqualTo: user.uid)
+        .limit(1)
+        .get();
 
     if (existing.docs.isNotEmpty) {
       AppSnackbar.showError(context, "Already applied");
       return;
     }
 
-    /// 🔥 START LOADING AFTER VALIDATION
     setState(() => _applying = true);
 
+    /// 🔥 GET USER DATA
     final userDoc =
         await _fire.collection('users').doc(user.uid).get();
 
@@ -139,69 +162,81 @@ final existing = await FirebaseFirestore.instance
     final String seekerName =
         (userData['fullName'] ?? 'User').toString();
 
-    final threadId = await _chatService.createOrGetThread(
-      user.uid,
-      job.postedBy,
-      seekerName,
-      job.postedByName,
-      job.id!,
-    );
-
-    await FirebaseFirestore.instance
-        .collection('threads')
-        .doc(threadId)
-        .update({"jobTitle": job.title});
-
-    final application = ApplicationModel(
-      applicationId: '',
-      jobId: widget.jobId,
-      jobTitle: job.title,
-      seekerId: user.uid,
-      employerId: job.postedBy,
-      name: seekerName,
-      email: (userData['email'] ?? '').toString(),
-      phone: (userData['phone'] ?? '').toString(),
-      skills: (userData['skills'] is List
-          ? (userData['skills'] as List).join(', ')
-          : ''),
-      locationText:
-          (userData['locationText'] ?? '').toString(),
-      status: 'pending',
-      createdAt: DateTime.now(),
-    );
-
-    await _applicationService.applyToJob(
-      application,
-      employerId: job.postedBy,
-      jobTitle: job.title,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _alreadyApplied = true;
-      _applying = false;
+    /// 🔥 STEP 1: ADD APPLICATION (MAIN LOGIC)
+    await FirebaseFirestore.instance.collection('applications').add({
+      'jobId': job.id,
+      'jobTitle': job.title,
+      'seekerId': user.uid,
+      'employerId': job.postedBy,
+      'name': seekerName,
+      'email': user.email ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'pending',
     });
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MessageDetailScreen(
-          threadId: threadId,
-          jobTitle: job.title,
-          otherUserId: job.postedBy,
-        ),
-      ),
-    );
-  } catch (e) {
+    await _notificationService.createNotification(
+  userId: job.postedBy,
+  type: "application",
+  title: "New Application",
+  body: "$seekerName applied for ${job.title}",
+  jobId: job.id,
+  jobTitle: job.title,
+  senderId: user.uid,
+  senderName: seekerName,
+);
+
+    /// 🔥 STEP 2: CHAT (OPTIONAL - DON'T BREAK FLOW)
+    try {
+  final employerId = job.postedBy;
+  final seekerId = user.uid;
+
+  final threadId = await _chatService.createOrGetThread(
+  seekerId: user.uid,
+  employerId: job.postedBy,
+  seekerName: seekerName,
+  employerName: job.postedByName,
+  jobId: job.id,
+  jobTitle: job.title,
+  companyName: job.postedByName,
+jobLocation: job.locationText ?? "",
+jobScope: job.jobScope ?? "local",
+);
+
+await FirebaseFirestore.instance
+    .collection('threads')
+    .doc(threadId)
+    .update({
+  "jobTitle": job.title,
+  "companyName": job.postedByName,
+  "jobLocation": job.locationText ?? "",
+  "jobScope": job.jobScope ?? "local",
+  "employerId": job.postedBy,
+  "employerName": job.postedByName,
+  "seekerId": seekerId,
+  "seekerName": seekerName,
+});
+
+
+} catch (e) {
+  print("Chat creation failed: $e");
+}
+
+    /// ✅ SUCCESS
     if (!mounted) return;
+    setState(() => _alreadyApplied = true);
 
-    setState(() => _applying = false);
+    AppSnackbar.showSuccess(context, "Applied successfully");
 
-    AppSnackbar.showError(
-      context,
-      "Failed to apply. Try again.",
-    );
+  } catch (e) {
+    print("Apply Error: $e");
+
+    if (!mounted) return;
+    AppSnackbar.showError(context, "Failed to apply");
+
+  } finally {
+    if (mounted) {
+      setState(() => _applying = false);
+    }
   }
 }
 

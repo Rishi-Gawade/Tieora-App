@@ -105,7 +105,7 @@ class _MyApplicationsScreenState
               if (rawStatus == 'pending') {
                 status = 'applied';
               } else if (rawStatus == 'accepted') {
-                status = 'hired';
+                status = 'Hired';
               } else {
                 status = rawStatus;
               }
@@ -225,7 +225,7 @@ class _MyApplicationsScreenState
                 ],
               ),
 
-              if (status == 'hired')
+              if (status == 'Hired')
                 _acceptedActions(jobId),
 
               /// ⭐ FIXED RATING BUTTON
@@ -298,7 +298,7 @@ class _MyApplicationsScreenState
     late String label;
 
     switch (status) {
-      case 'hired':
+      case 'Hired':
         color = Colors.green;
         label = 'Hired';
         break;

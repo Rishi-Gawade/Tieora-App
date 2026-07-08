@@ -21,6 +21,7 @@ dependencies:
   firebase_storage: ^12.3.4
   firebase_messaging: ^15.1.3
   google_sign_in: ^6.2.1
+  badges: ^3.1.2
 
   # Location & Maps
   google_maps_flutter: ^2.5.0
@@ -39,9 +40,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   
   assets:
     - assets/tieora_logo.png
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/tieora_logo.png"
